@@ -17,10 +17,8 @@ export default function quickSort(arr, low, high) {
 
         // Recursive call op de linker kant van de pivot
         quickSort(arr, low, pivot - 1);
-        console.log("Current Array: " + arr + "\n");
 
         // Recursive call op de rechter kant van de pivot
         quickSort(arr, pivot + 1, high);
-        console.log("Current Array: " + arr + "\n");
     }
 }

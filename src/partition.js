@@ -15,6 +15,8 @@ export default function partition(arr, low, high) {
 
     // We kiezen het laatste element in de lijst als de pivot
     let pivot = arr[high];
+    console.log(`\n--- Partitioning indices ${low} to ${high} ---`);
+    console.log(`Target Subarray: [${arr.slice(low, high + 1).join(', ')}] | Pivot: ${pivot}`);
 
     // We initialiseren de index van het kleinere element
     let i = low - 1;
@@ -25,16 +27,14 @@ export default function partition(arr, low, high) {
             i++;
             // We wisselen het kleinere element met het grotere element op index i
             [arr[i], arr[j]] = [arr[j], arr[i]];
-            console.log("Swapped " + arr[i] + " and " + arr[j] + "\n");
+            console.log(`  > Swapped ${arr[i]} and ${arr[j]} -> Full Array: [${arr.join(', ')}]`);
         }
-        console.log("Current Array: " + arr);
     }
     // We wisselen het pivot element met het element op index i + 1
     // Hierdoor komt de pivot op de juiste positie in de gesorteerde array
     [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
 
-    console.log("Swapped " + arr[i + 1] + " and " + arr[high] + "\n");
-    console.log("Current Array: " + arr + "\n");
+    console.log(`  > Placed pivot ${pivot} at index ${i + 1} -> Full Array: [${arr.join(', ')}]`);
 
     // We returnen de index van de pivot na het plaatsen op de juiste positie
     return (i + 1);
