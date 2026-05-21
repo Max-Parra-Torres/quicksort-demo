@@ -1,66 +1,57 @@
-import qs from './quickSort.js'
-
-// function qs(arr, lo, hi) {
-//     if (lo >= hi) return;
-//     const pivot = arr[hi];
-//     let i = lo - 1;
-//     for (let j = lo; j < hi; j++) {
-//         if (arr[j] < pivot) {
-//             i++;
-//             if (i !== j) [arr[i], arr[j]] = [arr[j], arr[i]];
-//         }
-//     }
-//     [arr[i + 1], arr[hi]] = [arr[hi], arr[i + 1]];
-//     const pi = i + 1;
-//     qs(arr, lo, pi - 1);
-//     qs(arr, pi + 1, hi);
-// }
+import qs from './quickSort.js';
 
 
+// ─── Step recorder — instruments your actual partition.js ─────────────────
+//
+// instrumentedPartition and instrumentedQs are line-for-line mirrors of
+// partition.js and quickSort.js. The only difference: instead of console.log,
+// each operation pushes a step object so the UI can replay it.
 
-
-// ─── Step recorder ────────────────────────────────────────────────────────
-
-function buildSteps(arr) {
+function buildSteps(inputArr) {
     const steps = [];
     const sorted = new Set();
 
-    function record(arr, lo, hi) {
-        if (lo >= hi) {
-            if (lo === hi) sorted.add(lo);
-            return;
-        }
-
-        const pivotVal = arr[hi];
-        steps.push({ type: 'partition-start', arr: [...arr], lo, hi, pivot: hi });
+    function instrumentedPartition(raw, lo, hi) {
+        const pivotVal = raw[hi];
+        steps.push({ type: 'partition-start', arr: [...raw], lo, hi, pivot: hi });
 
         let i = lo - 1;
         for (let j = lo; j < hi; j++) {
-            const willSwap = arr[j] < pivotVal && (i + 1) !== j;
-            const willCount = arr[j] < pivotVal;
-            steps.push({ type: 'compare', arr: [...arr], lo, hi, pivot: hi, i, j, willSwap, willCount });
-            if (arr[j] < pivotVal) {
+            const willSwap  = raw[j] < pivotVal && (i + 1) !== j;
+            const willCount = raw[j] < pivotVal;
+            steps.push({ type: 'compare', arr: [...raw], lo, hi, pivot: hi, i, j, willSwap, willCount });
+
+            if (raw[j] < pivotVal) {
                 i++;
-                if (i !== j) {
-                    [arr[i], arr[j]] = [arr[j], arr[i]];
-                    steps.push({ type: 'swap', arr: [...arr], lo, hi, pivot: hi, i, j });
-                }
+                if (i === j) continue;           // guard from partition.js
+                [raw[i], raw[j]] = [raw[j], raw[i]];
+                steps.push({ type: 'swap', arr: [...raw], lo, hi, pivot: hi, i, j });
             }
         }
 
-        [arr[i + 1], arr[hi]] = [arr[hi], arr[i + 1]];
+        [raw[i + 1], raw[hi]] = [raw[hi], raw[i + 1]];
         const pi = i + 1;
         sorted.add(pi);
-        steps.push({ type: 'place-pivot', arr: [...arr], lo, hi, pivot: pi, sortedSnap: new Set(sorted) });
+        steps.push({ type: 'place-pivot', arr: [...raw], lo, hi, pivot: pi, sortedSnap: new Set(sorted) });
 
-        record(arr, lo, pi - 1);
-        record(arr, pi + 1, hi);
-
-        for (let k = lo; k <= hi; k++) sorted.add(k);
-        steps.push({ type: 'subarray-sorted', arr: [...arr], lo, hi, sortedSnap: new Set(sorted) });
+        return pi;
     }
 
-    record([...arr], 0, arr.length - 1);
+    // Mirrors quickSort.js: base case is (low < high), same as your implementation
+    function instrumentedQs(raw, lo, hi) {
+        if (lo < hi) {
+            const pi = instrumentedPartition(raw, lo, hi);
+            instrumentedQs(raw, lo, pi - 1);
+            instrumentedQs(raw, pi + 1, hi);
+
+            for (let k = lo; k <= hi; k++) sorted.add(k);
+            steps.push({ type: 'subarray-sorted', arr: [...raw], lo, hi, sortedSnap: new Set(sorted) });
+        } else {
+            if (lo === hi) sorted.add(lo);
+        }
+    }
+
+    instrumentedQs([...inputArr], 0, inputArr.length - 1);
     return steps;
 }
 
@@ -87,9 +78,9 @@ function renderStepBars(arr, highlight) {
     document.getElementById('step-bars').innerHTML = arr.map((v, idx) => {
         let cls = 'bar-default';
         if (highlight) {
-            if (highlight.sorted?.has(idx))        cls = 'bar-sorted';
-            if (highlight.compare?.includes(idx))  cls = 'bar-active';
-            if (highlight.pivot === idx)           cls = 'bar-pivot';
+            if (highlight.sorted?.has(idx))       cls = 'bar-sorted';
+            if (highlight.compare?.includes(idx)) cls = 'bar-active';
+            if (highlight.pivot === idx)          cls = 'bar-pivot';
         }
         const h = Math.max(16, Math.round((v / maxVal) * 220));
         return `
@@ -139,11 +130,11 @@ function applyStep() {
         if (!s.willCount) {
             rel = 'not less than pivot.';
         } else if (s.willSwap) {
-            rel = 'less than pivot, will be swapped left.';
+            rel = 'less than pivot — will be swapped left.';
         } else {
-            rel = 'less than pivot, already in place.';
+            rel = 'less than pivot — already in place.';
         }
-        msg = `Comparing <em>${s.arr[s.j]}</em> (j=${s.j}) with pivot <em>${s.arr[s.pivot]}</em>: ${rel}`;
+        msg = `Comparing <em>${s.arr[s.j]}</em> (j=${s.j}) with pivot <em>${s.arr[s.pivot]}</em> — ${rel}`;
     } else if (s.type === 'swap') {
         hl.pivot = s.pivot;
         hl.compare = [s.i, s.j];
@@ -239,7 +230,6 @@ function runQuick() {
     const arr = genArr(100);
     const ms = timedSort(arr, 500).toFixed(4);
 
-    // Show the sorted result visually
     qs(arr, 0, arr.length - 1);
     renderQuickBars(arr, true);
     const timer = document.getElementById('quick-timer');
@@ -270,16 +260,14 @@ async function runScale() {
     document.getElementById('btn-scale').disabled = true;
     document.getElementById('scale-log').textContent = 'Warming up JIT…';
 
-    // Warm up once before any measurement
     warmJIT();
 
     document.getElementById('scale-log').textContent = 'Running tests…';
 
     const times = [];
     for (const n of SIZES) {
-        await new Promise(r => setTimeout(r, 30)); // yield to browser between runs
+        await new Promise(r => setTimeout(r, 30));
 
-        // For small n, loop many reps to beat the timer clamp; for large n, single run is fine
         const reps = n <= 1000 ? 200 : n <= 10000 ? 20 : 1;
         const arr = genArr(n);
         const avg = timedSort(arr, reps);
@@ -351,10 +339,12 @@ resetStep();
 resetQuick();
 initScaleCards();
 
-window.switchTab = switchTab;
-window.nextStep  = nextStep;
+// Expose handlers to window so HTML onclick attributes can reach them
+// (required because type="module" scopes everything to the module)
+window.switchTab  = switchTab;
+window.nextStep   = nextStep;
 window.togglePlay = togglePlay;
-window.resetStep = resetStep;
-window.runQuick  = runQuick;
+window.resetStep  = resetStep;
+window.runQuick   = runQuick;
 window.resetQuick = resetQuick;
-window.runScale  = runScale;
+window.runScale   = runScale;
