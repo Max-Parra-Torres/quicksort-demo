@@ -25,9 +25,15 @@ export default function partition(arr, low, high) {
     for (let j = low; j < high; j++) {
         if (arr[j] < pivot) {
             i++;
+
+            // Geen reden om te wisselen als de indices gelijk zijn
+            if (i === j) {
+                continue;
+            }
+
             // We wisselen het kleinere element met het grotere element op index i
             [arr[i], arr[j]] = [arr[j], arr[i]];
-            console.log(`  > Swapped ${arr[i]} and ${arr[j]} -> Full Array: [${arr.join(', ')}]`);
+            console.log(`  > Swapped ${arr[i]} (i=${i}) and ${arr[j]} (j=${j}) -> Full Array: [${arr.join(', ')}]`);
         }
     }
     // We wisselen het pivot element met het element op index i + 1
