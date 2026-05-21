@@ -1,16 +1,103 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>quicksort-demo</title>
-    <link rel="stylesheet" href="./src/index.css" />
-    <script type="module" src="/src/my-element.js"></script>
-  </head>
-  <body>
-    <my-element>
-      <h1>Get started</h1>
-    </my-element>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quicksort demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+
+<main class="card" role="main">
+  <h2 class="sr-only">Quicksort algorithm demo: step-by-step, timed run, and scaling test</h2>
+
+  <header class="card-header">
+    <span class="card-title">quicksort</span>
+    <nav class="tab-bar" aria-label="Demo sections">
+      <button class="tab active" onclick="switchTab('step')">step-by-step</button>
+      <button class="tab" onclick="switchTab('quick')">timed run</button>
+      <button class="tab" onclick="switchTab('scale')">scaling</button>
+    </nav>
+  </header>
+
+
+  <!-- ── Panel 1: Step-by-step ── -->
+  <section id="panel-step" class="panel active">
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot dot-default"></div>unsorted</div>
+      <div class="legend-item"><div class="legend-dot dot-pivot"></div>pivot</div>
+      <div class="legend-item"><div class="legend-dot dot-active"></div>comparing</div>
+      <div class="legend-item"><div class="legend-dot dot-sorted"></div>sorted</div>
+    </div>
+
+    <p class="section-label">Array</p>
+    <div class="arr-row" id="step-bars"></div>
+
+    <div class="step-log" id="step-log">Press <em>next step</em> to begin.</div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="btn-next" onclick="nextStep()">Next step →</button>
+      <button class="btn" id="btn-play" onclick="togglePlay()">▶ Play</button>
+      <button class="btn" onclick="resetStep()">Reset</button>
+      <span class="step-counter" id="step-counter"></span>
+    </div>
+
+  </section>
+
+
+  <!-- ── Panel 2: Timed run ── -->
+  <section id="panel-quick" class="panel">
+
+    <p class="section-label">Array (100 elements)</p>
+    <div class="quick-arr" id="quick-bars"></div>
+
+    <div class="timer-display" id="quick-timer">—<span class="timer-unit">ms</span></div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="btn-run" onclick="runQuick()">Run sort</button>
+      <button class="btn" onclick="resetQuick()">New array</button>
+    </div>
+
+
+  </section>
+
+
+  <!-- ── Panel 3: Scaling ── -->
+  <section id="panel-scale" class="panel">
+
+    <div class="scale-grid" id="scale-cards"></div>
+
+    <div class="chart-wrap">
+      <canvas id="scale-chart"
+              role="img"
+              aria-label="Bar chart showing quicksort time for arrays of size 1000, 10000 and 100000">
+        Timing data will appear after running the test.
+      </canvas>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="btn-scale" onclick="runScale()">Run all tests</button>
+    </div>
+
+    <div class="step-log" id="scale-log">
+      Each test sorts a fresh random array. A JIT warm-up run is done first so times are stable.
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="card-footer">
+  <span>Team Help (22/05/2026)</span>
+  <span>Front-end generated with AI.</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script type="module" src="./src/demo.js"></script>
+
+</body>
 </html>
