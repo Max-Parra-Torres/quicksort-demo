@@ -153,10 +153,13 @@ body {
     flex-shrink: 0;
 }
 
-.dot-default { background: #aecff5; }
-.dot-pivot   { background: #f5a623; }
-.dot-active  { background: #34c89a; }
-.dot-sorted  { background: #7ed977; }
+.dot-small     { background: #60c4f0; }
+.dot-examining { background: #f9c74f; }
+.dot-large     { background: #f4a26b; }
+.dot-unseen    { background: #c8d8e8; }
+.dot-selfswap  { background: #d0a8f5; }
+.dot-pivot     { background: #e03e3e; }
+.dot-sorted    { background: #7ed977; }
 
 
 /* ── Step bars ── */
@@ -167,6 +170,13 @@ body {
     margin-bottom: 1.25rem;
     height: 260px;
     flex-wrap: nowrap;
+}
+
+/* Partition boundary: a visible divider to the left of a placed pivot */
+.bar-partition-start {
+    border-left: 3px solid #555;
+    padding-left: 4px;
+    margin-left: 3px;
 }
 
 .bar {
@@ -200,10 +210,13 @@ body {
     color: #111111;
 }
 
-.bar-default { background-color: #aecff5; }
-.bar-pivot   { background-color: #f5a623; }
-.bar-active  { background-color: #34c89a; }
-.bar-sorted  { background-color: #7ed977; }
+.bar-default   { background-color: #c8d8e8; }
+.bar-small     { background-color: #60c4f0; }   /* confirmed < pivot — blue  */
+.bar-examining { background-color: #f9c74f; }   /* currently examining — yellow */
+.bar-large     { background-color: #f4a26b; }   /* confirmed >= pivot — orange */
+.bar-unseen    { background-color: #c8d8e8; }   /* not yet seen — neutral grey-blue */
+.bar-pivot     { background-color: #e03e3e; }   /* pivot — red, always distinct */
+.bar-sorted    { background-color: #7ed977; }   /* fully sorted — green */
 
 
 /* ── Step log ── */
@@ -412,4 +425,17 @@ body {
     font-size: 20px;
     color: #888;
     pointer-events: none;
+}
+
+
+
+/* ── Self-swap bar and log label ── */
+.bar-selfswap {
+    background-color: #d0a8f5;   /* soft purple — distinct, not alarming */
+}
+
+.self-swap-label {
+    color: #7c3aed;
+    font-style: normal;
+    font-weight: 600;
 }

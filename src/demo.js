@@ -6,38 +6,61 @@ import qs from './quickSort.js';
 // instrumentedPartition and instrumentedQs are line-for-line mirrors of
 // partition.js and quickSort.js. The only difference: instead of console.log,
 // each operation pushes a step object so the UI can replay it.
+//
+// placedPivots tracks which indices have had a pivot placed at them so far.
+// This is snapshotted on every step and used to render partition dividers.
 
 function buildSteps(inputArr) {
-    const steps = [];
-    const sorted = new Set();
+    const steps     = [];
+    const sorted    = new Set();
+    const placedPivots = new Set();
 
     function instrumentedPartition(raw, lo, hi) {
         const pivotVal = raw[hi];
-        steps.push({ type: 'partition-start', arr: [...raw], lo, hi, pivot: hi });
+        steps.push({
+            type: 'partition-start', arr: [...raw], lo, hi, pivot: hi,
+            pivotsSnap: new Set(placedPivots),
+        });
 
         let i = lo - 1;
         for (let j = lo; j < hi; j++) {
-            const willSwap  = raw[j] < pivotVal && (i + 1) !== j;
-            const willCount = raw[j] < pivotVal;
-            steps.push({ type: 'compare', arr: [...raw], lo, hi, pivot: hi, i, j, willSwap, willCount });
+            // Without the guard, every element < pivot triggers a swap — even when
+            // i and j coincide, resulting in a self-swap.
+            const willCount    = raw[j] < pivotVal;
+            const willSelfSwap = raw[j] < pivotVal && (i + 1) === j;
+            steps.push({
+                type: 'compare', arr: [...raw], lo, hi, pivot: hi, i, j,
+                willSwap: willCount,   // always swaps when < pivot (no guard)
+                willSelfSwap,
+                willCount,
+                pivotsSnap: new Set(placedPivots),
+            });
 
             if (raw[j] < pivotVal) {
                 i++;
-                if (i === j) continue;           // guard from partition.js
-                [raw[i], raw[j]] = [raw[j], raw[i]];
-                steps.push({ type: 'swap', arr: [...raw], lo, hi, pivot: hi, i, j });
+                [raw[i], raw[j]] = [raw[j], raw[i]];   // no guard — self-swaps happen
+                steps.push({
+                    type: 'swap', arr: [...raw], lo, hi, pivot: hi, i, j,
+                    selfSwap: i === j,
+                    pivotsSnap: new Set(placedPivots),
+                });
             }
         }
 
         [raw[i + 1], raw[hi]] = [raw[hi], raw[i + 1]];
         const pi = i + 1;
         sorted.add(pi);
-        steps.push({ type: 'place-pivot', arr: [...raw], lo, hi, pivot: pi, sortedSnap: new Set(sorted) });
+        placedPivots.add(pi);
+        steps.push({
+            type: 'place-pivot', arr: [...raw], lo, hi, pivot: pi,
+            sortedSnap: new Set(sorted),
+            pivotsSnap: new Set(placedPivots),   // snapshot AFTER adding pi
+        });
 
         return pi;
     }
 
-    // Mirrors quickSort.js: base case is (low < high), same as your implementation
+    // Mirrors quickSort.js: base case is (low < high)
     function instrumentedQs(raw, lo, hi) {
         if (lo < hi) {
             const pi = instrumentedPartition(raw, lo, hi);
@@ -45,7 +68,11 @@ function buildSteps(inputArr) {
             instrumentedQs(raw, pi + 1, hi);
 
             for (let k = lo; k <= hi; k++) sorted.add(k);
-            steps.push({ type: 'subarray-sorted', arr: [...raw], lo, hi, sortedSnap: new Set(sorted) });
+            steps.push({
+                type: 'subarray-sorted', arr: [...raw], lo, hi,
+                sortedSnap: new Set(sorted),
+                pivotsSnap: new Set(placedPivots),
+            });
         } else {
             if (lo === hi) sorted.add(lo);
         }
@@ -75,16 +102,44 @@ let stepSteps, stepIdx, playTimer = null;
 
 function renderStepBars(arr, highlight) {
     const maxVal = Math.max(...arr);
+    const { sorted, pivot, iPos, jPos, lo, hi, type, placedPivots } = highlight || {};
+
+    // Build set of indices that start a new partition segment.
+    // A divider is drawn to the LEFT of index n when n is in placedPivots
+    // (meaning a pivot was placed there and splits the array).
+    // We also draw one to the left of lo and right of hi to box the active subarray.
+
     document.getElementById('step-bars').innerHTML = arr.map((v, idx) => {
-        let cls = 'bar-default';
-        if (highlight) {
-            if (highlight.sorted?.has(idx))       cls = 'bar-sorted';
-            if (highlight.compare?.includes(idx)) cls = 'bar-active';
-            if (highlight.pivot === idx)          cls = 'bar-pivot';
+        let cls;
+
+        if (sorted?.has(idx)) {
+            cls = 'bar-sorted';
+        } else if (idx === pivot && type !== 'subarray-sorted') {
+            cls = 'bar-pivot';
+        } else if (type === 'compare' || type === 'swap') {
+            if (iPos !== undefined && idx <= iPos && idx === jPos && highlight?.selfSwap)
+                cls = 'bar-selfswap';
+            else if (iPos !== undefined && idx <= iPos) cls = 'bar-small';
+            else if (idx === jPos)                     cls = 'bar-examining';
+            else if (jPos !== undefined && idx < jPos) cls = 'bar-large';
+            else                                       cls = 'bar-unseen';
+        } else if (type === 'partition-start') {
+            cls = 'bar-unseen';
+        } else if (type === 'place-pivot') {
+            if (idx < pivot) cls = 'bar-small';
+            else             cls = 'bar-large';
+        } else {
+            cls = 'bar-default';
         }
+
         const h = Math.max(16, Math.round((v / maxVal) * 220));
+
+        // A divider appears to the LEFT of this bar when a pivot sits at idx,
+        // but not at the very first element (no divider needed before index 0).
+        const hasDivider = idx > 0 && placedPivots?.has(idx);
+
         return `
-      <div class="bar">
+      <div class="bar${hasDivider ? ' bar-partition-start' : ''}">
         <div class="bar-block ${cls}" style="height:${h}px">
           <span class="bar-val">${v}</span>
         </div>
@@ -117,7 +172,13 @@ function applyStep() {
     document.getElementById('step-counter').textContent = `step ${stepIdx + 1} / ${stepSteps.length}`;
 
     const sortedSet = s.sortedSnap || new Set();
-    const hl = { sorted: sortedSet, pivot: null, compare: [] };
+    const hl = {
+        sorted: sortedSet,
+        pivot: null,
+        lo: s.lo, hi: s.hi,
+        type: s.type,
+        placedPivots: s.pivotsSnap || new Set(),
+    };
     let msg = '';
 
     if (s.type === 'partition-start') {
@@ -125,20 +186,22 @@ function applyStep() {
         msg = `Partitioning indices <em>${s.lo}</em> to <em>${s.hi}</em>. Pivot chosen: <em>${s.arr[s.pivot]}</em> (index ${s.pivot}).`;
     } else if (s.type === 'compare') {
         hl.pivot = s.pivot;
-        hl.compare = [s.j];
+        hl.iPos  = s.i;
+        hl.jPos  = s.j;
         let rel;
-        if (!s.willCount) {
-            rel = 'not less than pivot.';
-        } else if (s.willSwap) {
-            rel = 'less than pivot — will be swapped left.';
-        } else {
-            rel = 'less than pivot — already in place.';
-        }
+        if (!s.willCount)          rel = 'not less than pivot.';
+        else if (s.willSelfSwap)   rel = 'less than pivot, incrementing i.';
         msg = `Comparing <em>${s.arr[s.j]}</em> (j=${s.j}) with pivot <em>${s.arr[s.pivot]}</em> — ${rel}`;
     } else if (s.type === 'swap') {
-        hl.pivot = s.pivot;
-        hl.compare = [s.i, s.j];
-        msg = `Swapped <em>${s.arr[s.j]}</em> (was at j=${s.j}) and <em>${s.arr[s.i]}</em> (now at i=${s.i}).`;
+        hl.pivot  = s.pivot;
+        hl.iPos   = s.i;
+        hl.jPos   = s.j;
+        hl.selfSwap = s.selfSwap;
+        if (s.selfSwap) {
+            msg = `<em class="self-swap-label">Self-swap</em> — <em>${s.arr[s.i]}</em> at index ${s.i} swapped with itself. Array unchanged.`;
+        } else {
+            msg = `Swapped <em>${s.arr[s.j]}</em> (was at j=${s.j}) and <em>${s.arr[s.i]}</em> (now at i=${s.i}).`;
+        }
     } else if (s.type === 'place-pivot') {
         hl.pivot = s.pivot;
         hl.sorted = sortedSet;
@@ -269,8 +332,8 @@ async function runScale() {
         await new Promise(r => setTimeout(r, 30));
 
         const reps = n <= 1000 ? 200 : n <= 10000 ? 20 : 1;
-        const arr = genArr(n);
-        const avg = timedSort(arr, reps);
+        const arr  = genArr(n);
+        const avg  = timedSort(arr, reps);
         times.push(avg);
 
         document.getElementById('val-' + n).textContent = avg.toFixed(2) + ' ms';
