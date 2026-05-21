@@ -11,14 +11,14 @@ import partition from "./partition.js";
  * @param {number} low - De index van het eerste element in de array
  * @param {number} high - De index van het laatste element in de array
  */
-export default function quickSort(arr, low, high) {
+export default function qs(arr, low, high) {
     if (low < high) {
         let pivot = partition(arr, low, high);
 
         // Recursive call op de linker kant van de pivot
-        quickSort(arr, low, pivot - 1);
+        qs(arr, low, pivot - 1);
 
         // Recursive call op de rechter kant van de pivot
-        quickSort(arr, pivot + 1, high);
+        qs(arr, pivot + 1, high);
     }
 }
