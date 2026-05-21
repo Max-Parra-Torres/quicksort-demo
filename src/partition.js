@@ -24,11 +24,6 @@ export default function partition(arr, low, high) {
         if (arr[j] < pivot) {
             i++;
 
-            // Geen reden om te wisselen als de indices gelijk zijn
-            if (i === j) {
-                continue;
-            }
-
             // We wisselen het kleinere element met het grotere element op index i
             [arr[i], arr[j]] = [arr[j], arr[i]];
         }
