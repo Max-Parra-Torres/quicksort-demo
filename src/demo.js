@@ -191,6 +191,7 @@ function applyStep() {
         let rel;
         if (!s.willCount)          rel = 'not less than pivot.';
         else if (s.willSelfSwap)   rel = 'less than pivot, incrementing i.';
+        else rel = 'less than pivot, incrementing i.'
         msg = `Comparing <em>${s.arr[s.j]}</em> (j=${s.j}) with pivot <em>${s.arr[s.pivot]}</em> — ${rel}`;
     } else if (s.type === 'swap') {
         hl.pivot  = s.pivot;
@@ -352,7 +353,7 @@ async function runScale() {
     const pred1  = (10 * Math.log2(10000) / Math.log2(1000)).toFixed(1);
     const pred2  = (100 * Math.log2(100000) / Math.log2(1000)).toFixed(1);
     const cacheNote = parseFloat(ratio2) > parseFloat(pred2) * 1.3
-        ? ' Cache misses likely explain the extra slowdown at 100K.'
+        ? ''
         : '';
     document.getElementById('scale-log').innerHTML =
         `10× more data → <em>~${ratio1}× slower</em>. 100× more data → <em>~${ratio2}× slower</em>. ` +
